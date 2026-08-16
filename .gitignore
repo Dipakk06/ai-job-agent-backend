@@ -1,0 +1,13 @@
+.env
+credentials/
+uploads/
+data/*.db
+__pycache__/
+*.pyc
+.streamlit/
+.venv/
+dist/
+build/
+*.egg-info/
+
+.envcls

@@ -1,0 +1,50 @@
+name: Daily AI Job Agent
+
+on:
+  workflow_dispatch:
+  schedule:
+    # 02:30 UTC = 08:00 IST
+    - cron: "30 2 * * *"
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v6
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Create directories
+        run: mkdir -p credentials uploads data
+
+      - name: Restore Google service account
+        env:
+          GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+        run: printf '%s' "$GOOGLE_SERVICE_ACCOUNT_JSON" > credentials/google-service-account.json
+
+      - name: Restore Gmail token
+        env:
+          GMAIL_TOKEN_JSON: ${{ secrets.GMAIL_TOKEN_JSON }}
+        run: printf '%s' "$GMAIL_TOKEN_JSON" > credentials/gmail-token.json
+
+      - name: Restore resume
+        env:
+          RESUME_BASE64: ${{ secrets.RESUME_BASE64 }}
+        run: printf '%s' "$RESUME_BASE64" | base64 -d > uploads/resume.pdf
+
+      - name: Run agent
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          FIRECRAWL_API_KEY: ${{ secrets.FIRECRAWL_API_KEY }}
+          GOOGLE_SERVICE_ACCOUNT_FILE: credentials/google-service-account.json
+          GOOGLE_SHEET_ID: ${{ secrets.GOOGLE_SHEET_ID }}
+          GMAIL_TOKEN_FILE: credentials/gmail-token.json
+          DAILY_REPORT_EMAIL: ${{ secrets.DAILY_REPORT_EMAIL }}
+          TARGET_ROLE: ${{ secrets.TARGET_ROLE }}
+          TARGET_LOCATION: ${{ secrets.TARGET_LOCATION }}
+          RESUME_PATH: uploads/resume.pdf
+        run: uv run python -m app.services.daily_runner
